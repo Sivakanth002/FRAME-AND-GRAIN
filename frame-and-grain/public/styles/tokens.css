@@ -1,0 +1,75 @@
+/* ==========================================================================
+   DESIGN SYSTEM TOKENS — "FRAME & GRAIN"
+   Fixed Specification: DM Serif Display + Manrope | Oxblood + Muted Brass
+   ========================================================================== */
+
+:root {
+  /* 1. Core Background Palette */
+  --bg-primary: #080808;
+  --bg-secondary: #111111;
+  --bg-surface: #141414;
+  --bg-surface-elevated: #1a1a1a;
+  --bg-surface-glass: rgba(17, 17, 17, 0.88);
+
+  /* 2. Text Palette */
+  --text-primary: #F3EEE5;       /* Warm White */
+  --text-muted: #A6A29A;         /* Secondary / Muted */
+  --text-faint: #5A5752;         /* Disabled / Dividers */
+
+  /* 3. Border */
+  --border-subtle: #292929;
+  --border-hover: #3D3D3D;
+
+  /* 4. Fixed Accents */
+  /* Primary Accent — Oxblood (Selected states, active controls, key CTA details) */
+  --accent-oxblood: #8E1F2D;
+  --accent-oxblood-hover: #A52434;
+  --accent-oxblood-subtle: rgba(142, 31, 45, 0.15);
+  --accent-oxblood-border: rgba(142, 31, 45, 0.4);
+
+  /* Secondary Accent — Muted Brass (Awards, special metadata, small premium details) */
+  --accent-brass: #C3A06A;
+  --accent-brass-subtle: rgba(195, 160, 106, 0.12);
+  --accent-brass-border: rgba(195, 160, 106, 0.35);
+
+  /* 5. Typography */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Type Scale */
+  --text-2xs: 0.7rem;    /* 11px */
+  --text-xs: 0.8rem;     /* 12.8px */
+  --text-sm: 0.9rem;     /* 14.4px */
+  --text-base: 1rem;     /* 16px */
+  --text-md: 1.125rem;   /* 18px */
+  --text-lg: 1.25rem;    /* 20px */
+  --text-xl: 1.5rem;     /* 24px */
+  --text-2xl: 2rem;      /* 32px */
+  --text-3xl: 2.75rem;   /* 44px */
+  --text-4xl: 4rem;      /* 64px */
+
+  /* 6. Spacing Scale */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4.5rem;
+
+  /* 7. Radii */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+
+  /* 8. Transitions */
+  --transition-fast: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 280ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 9. Layout */
+  --max-width-content: 1240px;
+  --max-width-curator: 980px;
+}

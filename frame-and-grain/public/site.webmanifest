@@ -1,0 +1,17 @@
+{
+  "name": "Frame & Grain",
+  "short_name": "Frame & Grain",
+  "description": "A thoughtful film discovery experience. Explore a living archive of cinema, tuned to your mood.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0A09",
+  "theme_color": "#0B0A09",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
