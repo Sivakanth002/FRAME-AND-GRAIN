@@ -18,7 +18,8 @@ import {
   normalizeMovie,
   normalizeTV,
   attachWatchProviders,
-  getTitleKey
+  getTitleKey,
+  formatTVEpisodeRuntime
 } from './normalizer';
 import {
   sanitizePreferences,
@@ -26,6 +27,7 @@ import {
   matchesReleasePeriod,
   matchesRuntime
 } from './filters';
+import { matchesGenreSelection } from '@/server/tmdb/genres';
 import { computeScore } from './scoring';
 import {
   normalizeCertification,
@@ -241,9 +243,9 @@ export class RecommendationEngine {
         }
       }
 
-      // 5. Genre check (ANY selected genre qualifies)
+      // 5. Genre check (ANY selected genre qualifies, media-specific mapping aware)
       if (prefs.genreIds && prefs.genreIds.length > 0) {
-        const hasGenreMatch = prefs.genreIds.some((gid) => candidate.genreIds.includes(gid));
+        const hasGenreMatch = matchesGenreSelection(candidate.genreIds, candidate.mediaType, prefs.genreIds);
         if (!hasGenreMatch) continue;
       }
 
@@ -261,8 +263,9 @@ export class RecommendationEngine {
 
       const needsProviders = candidate.providers.length === 0;
       const needsCert = !candidate.certification;
+      const needsDetail = candidate.runtime === null;
 
-      // Parallelize provider and certification requests for this candidate
+      // Parallelize provider, certification, and title detail requests for this candidate
       const providerPromise = needsProviders
         ? (candidate.mediaType === 'movie'
             ? this.providersService.getMovieWatchProviders(candidate.sourceId)
@@ -277,13 +280,46 @@ export class RecommendationEngine {
           ).catch(() => null)
         : Promise.resolve(null);
 
-      const [providerRes, certRes] = await Promise.all([providerPromise, certPromise]);
+      const detailPromise = needsDetail
+        ? (candidate.mediaType === 'movie'
+            ? this.discoveryService.getMovieDetail(candidate.sourceId)
+            : this.discoveryService.getTVDetail(candidate.sourceId)
+          ).catch(() => null)
+        : Promise.resolve(null);
+
+      const [providerRes, certRes, detailRes] = await Promise.all([providerPromise, certPromise, detailPromise]);
 
       if (providerRes) {
         candidateWithProviders = attachWatchProviders(candidate, providerRes, prefs.region);
       }
 
       let candidateEnriched = candidateWithProviders;
+
+      if (detailRes) {
+        if (candidate.mediaType === 'movie') {
+          const rawMovie = detailRes as any;
+          const movieRuntime = typeof rawMovie.runtime === 'number' && rawMovie.runtime > 0 ? rawMovie.runtime : null;
+          candidateEnriched = {
+            ...candidateEnriched,
+            runtime: movieRuntime ?? candidateEnriched.runtime,
+            totalRuntime: movieRuntime ?? candidateEnriched.totalRuntime,
+          };
+        } else {
+          const rawTV = detailRes as any;
+          const epRuntime = Array.isArray(rawTV.episode_run_time) && rawTV.episode_run_time.length > 0 ? rawTV.episode_run_time[0] : null;
+          const epCount = typeof rawTV.number_of_episodes === 'number' ? rawTV.number_of_episodes : null;
+          const sCount = typeof rawTV.number_of_seasons === 'number' ? rawTV.number_of_seasons : null;
+          candidateEnriched = {
+            ...candidateEnriched,
+            runtime: epRuntime ?? candidateEnriched.runtime,
+            episodeRuntimeFormatted: formatTVEpisodeRuntime(epRuntime ?? candidateEnriched.runtime),
+            episodeCount: epCount ?? candidateEnriched.episodeCount,
+            seasonCount: sCount ?? candidateEnriched.seasonCount,
+            totalRuntime: epRuntime && epCount ? epRuntime * epCount : candidateEnriched.totalRuntime,
+          };
+        }
+      }
+
       if (needsCert) {
         let rawCert: string | null = null;
         if (certRes) {

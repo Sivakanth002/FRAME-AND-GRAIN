@@ -90,3 +90,72 @@ export class TMDBGenresService {
     return STATIC_FALLBACK_TV_GENRES[id] || 'Drama';
   }
 }
+
+/**
+ * Maps genre IDs to media-specific TMDB genre IDs (Movie <-> TV)
+ * and deduplicates the resulting IDs.
+ */
+export function mapGenresForMediaType(genreIds: number[], mediaType: 'movie' | 'tv'): number[] {
+  if (!Array.isArray(genreIds) || genreIds.length === 0) return [];
+  const mapped = new Set<number>();
+
+  if (mediaType === 'tv') {
+    for (const id of genreIds) {
+      if (id === 28 || id === 12) {
+        // Action (28) / Adventure (12) -> TV Action & Adventure (10759)
+        mapped.add(10759);
+      } else if (id === 878 || id === 14) {
+        // Science Fiction (878) / Fantasy (14) -> TV Sci-Fi & Fantasy (10765)
+        mapped.add(10765);
+      } else if (id === 10752) {
+        // War (10752) -> TV War & Politics (10768)
+        mapped.add(10768);
+      } else if (STATIC_FALLBACK_TV_GENRES[id]) {
+        mapped.add(id);
+      } else if (STATIC_FALLBACK_MOVIE_GENRES[id]) {
+        // Keep movie ID if it's a known movie genre (some overlap)
+        mapped.add(id);
+      }
+    }
+  } else {
+    // movie
+    for (const id of genreIds) {
+      if (id === 10759) {
+        // TV Action & Adventure -> Movie Action (28) + Adventure (12)
+        mapped.add(28);
+        mapped.add(12);
+      } else if (id === 10765) {
+        // TV Sci-Fi & Fantasy -> Movie Science Fiction (878) + Fantasy (14)
+        mapped.add(878);
+        mapped.add(14);
+      } else if (id === 10768) {
+        // TV War & Politics -> Movie War (10752)
+        mapped.add(10752);
+      } else if (STATIC_FALLBACK_MOVIE_GENRES[id]) {
+        mapped.add(id);
+      } else if (STATIC_FALLBACK_TV_GENRES[id]) {
+        mapped.add(id);
+      }
+    }
+  }
+
+  return Array.from(mapped);
+}
+
+/**
+ * Checks if a candidate's genre IDs match selected genre IDs,
+ * taking media-specific TMDB genre namespace differences into account.
+ */
+export function matchesGenreSelection(
+  candidateGenreIds: number[],
+  candidateMediaType: 'movie' | 'tv',
+  selectedGenreIds: number[]
+): boolean {
+  if (!selectedGenreIds || selectedGenreIds.length === 0) return true;
+  if (!candidateGenreIds || candidateGenreIds.length === 0) return false;
+
+  const targetGenreIds = mapGenresForMediaType(selectedGenreIds, candidateMediaType);
+  const allTargetIds = new Set([...selectedGenreIds, ...targetGenreIds]);
+
+  return candidateGenreIds.some((id) => allTargetIds.has(id));
+}

@@ -9,11 +9,12 @@ import {
   AccessMode
 } from '@/types/index';
 import { getAgeSuitability } from './certifications';
+import { matchesGenreSelection } from '@/server/tmdb/genres';
 
 export const DEFAULT_PREFERENCES: Preferences = {
   region: 'IN',
-  providerIds: [8, 9, 122], // Default Netflix (8), Prime (9), Hotstar (122)
-  providerMode: 'any',
+  providerIds: [],
+  providerMode: 'any-provider',
   accessModes: ['flatrate'],
   format: 'all',
   language: 'all',
@@ -32,12 +33,12 @@ export function sanitizePreferences(input: Partial<Preferences>): Preferences {
 
   const providerIds = Array.isArray(input.providerIds)
     ? input.providerIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
-    : DEFAULT_PREFERENCES.providerIds;
+    : [];
 
   const validProviderModes = ['any', 'all', 'none', 'any-provider'];
   const providerMode = validProviderModes.includes(input.providerMode as string)
     ? (input.providerMode as Preferences['providerMode'])
-    : DEFAULT_PREFERENCES.providerMode;
+    : (providerIds.length > 0 ? 'any' : 'any-provider');
 
   const validAccessModes: AccessMode[] = ['flatrate', 'rent', 'buy'];
   const accessModes = Array.isArray(input.accessModes) && input.accessModes.length > 0
@@ -138,9 +139,9 @@ export function isCandidateEligible(candidate: TitleRecord, prefs: Preferences):
     return false;
   }
 
-  // 5. Genre Hard Filter (ANY selected genre is sufficient)
+  // 5. Genre Hard Filter (ANY selected genre is sufficient, media-specific mapping aware)
   if (prefs.genreIds && prefs.genreIds.length > 0) {
-    const hasAnyGenreMatch = candidate.genreIds.some((id) => prefs.genreIds.includes(id));
+    const hasAnyGenreMatch = matchesGenreSelection(candidate.genreIds, candidate.mediaType, prefs.genreIds);
     if (!hasAnyGenreMatch) {
       return false;
     }

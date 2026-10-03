@@ -11,6 +11,7 @@ import {
   TMDBRawTV,
   TMDBVideo
 } from '@/types/index';
+import { mapGenresForMediaType } from './genres';
 
 export class TMDBDiscoveryService {
   constructor(private client: TMDBClient) {}
@@ -104,7 +105,10 @@ export class TMDBDiscoveryService {
     }
 
     if (prefs.genreIds && prefs.genreIds.length > 0) {
-      params.with_genres = prefs.genreIds.join('|');
+      const movieGenreIds = mapGenresForMediaType(prefs.genreIds, 'movie');
+      if (movieGenreIds.length > 0) {
+        params.with_genres = movieGenreIds.join('|');
+      }
     }
 
     // Release Period
@@ -161,11 +165,17 @@ export class TMDBDiscoveryService {
     }
 
     if (prefs.genreIds && prefs.genreIds.length > 0) {
-      params.with_genres = prefs.genreIds.join('|');
+      const tvGenreIds = mapGenresForMediaType(prefs.genreIds, 'tv');
+      if (tvGenreIds.length > 0) {
+        params.with_genres = tvGenreIds.join('|');
+      }
     }
 
     // Release Period
     this.applyReleasePeriodParams(params, prefs, 'tv');
+
+    // Runtime
+    this.applyRuntimeParams(params, prefs);
 
     return params;
   }

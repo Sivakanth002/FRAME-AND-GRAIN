@@ -66,6 +66,7 @@ function regionDisplay(code?: string): string {
 }
 
 export function FilmDetail({ film, onClose }: FilmDetailProps) {
+  const [detailData, setDetailData] = useState<Partial<TitleRecord> & { trailerUrl?: string | null } | null>(null);
   const [trailerUrl, setTrailerUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const dialogId = useId();
@@ -103,16 +104,21 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
     };
   }, [onClose]);
 
-  // Fetch trailer
+  // Fetch authoritative title detail & trailer
   useEffect(() => {
     const { mediaType, sourceId } = film;
     fetch(`/api/title/${mediaType}/${sourceId}`)
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.data?.trailerUrl) setTrailerUrl(d.data.trailerUrl);
+        if (d.success && d.data) {
+          setDetailData(d.data);
+          if (d.data.trailerUrl) setTrailerUrl(d.data.trailerUrl);
+        }
       })
       .catch(() => {});
   }, [film]);
+
+  const activeFilm: TitleRecord = detailData ? { ...film, ...detailData } : film;
 
   // ── Touch handlers for mobile sheet ───────────────────────────────────────
   const onTouchStart = useCallback((e: React.TouchEvent) => {
@@ -176,78 +182,78 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
     return baseY as string;
   }
 
-  const flatrate = film.providers?.filter(p => p.type === 'flatrate') ?? [];
-  const rent = film.providers?.filter(p => p.type === 'rent') ?? [];
-  const posterSrc = posterUrl(film.poster);
+  const flatrate = activeFilm.providers?.filter(p => p.type === 'flatrate') ?? [];
+  const rent = activeFilm.providers?.filter(p => p.type === 'rent') ?? [];
+  const posterSrc = posterUrl(activeFilm.poster);
 
   // ── Info content (shared between mobile sheet and desktop column) ──────────
   const InfoContent = () => (
     <div className="detail-info-col" id={`${dialogId}-info`}>
-      <h1 className="detail-title">{film.title}</h1>
+      <h1 className="detail-title">{activeFilm.title}</h1>
 
       <div className="detail-meta-row" aria-label="Film details">
-        {film.year && (
+        {activeFilm.year && (
           <div className="detail-meta-item">
             <span className="detail-meta-label">Year</span>
-            <span className="detail-meta-value">{film.year}</span>
+            <span className="detail-meta-value">{activeFilm.year}</span>
           </div>
         )}
         <div className="detail-meta-item">
           <span className="detail-meta-label">Language</span>
-          <span className="detail-meta-value">{languageDisplay(film.originalLanguage)}</span>
+          <span className="detail-meta-value">{languageDisplay(activeFilm.originalLanguage)}</span>
         </div>
         <div className="detail-meta-item">
           <span className="detail-meta-label">Runtime</span>
-          <span className="detail-meta-value">{runtimeDisplay(film)}</span>
+          <span className="detail-meta-value">{runtimeDisplay(activeFilm)}</span>
         </div>
-        {film.rating > 0 && (
+        {activeFilm.rating > 0 && (
           <div className="detail-meta-item">
             <span className="detail-meta-label">Rating</span>
             <div>
-              <span className="detail-rating">{ratingDisplay(film.rating)}</span>
-              <span className="detail-rating-sub"> / 10 · {film.voteCount.toLocaleString()} votes</span>
+              <span className="detail-rating">{ratingDisplay(activeFilm.rating)}</span>
+              <span className="detail-rating-sub"> / 10 · {activeFilm.voteCount.toLocaleString()} votes</span>
             </div>
           </div>
         )}
         <div className="detail-meta-item">
           <span className="detail-meta-label">Format</span>
           <span className="detail-meta-value" style={{ textTransform: 'capitalize' }}>
-            {film.contentClass}
+            {activeFilm.contentClass}
           </span>
         </div>
         <div className="detail-meta-item">
           <span className="detail-meta-label">Certification</span>
           <span className="detail-meta-value">
-            {film.certification?.confidence === 'verified' && film.certification.rawRating
-              ? `${regionDisplay(film.certification.region)} · ${film.certification.rawRating}`
+            {activeFilm.certification?.confidence === 'verified' && activeFilm.certification.rawRating
+              ? `${regionDisplay(activeFilm.certification.region)} · ${activeFilm.certification.rawRating}`
               : 'Certification Unavailable'}
           </span>
         </div>
       </div>
 
-      {film.genres.length > 0 && (
+      {activeFilm.genres.length > 0 && (
         <div className="detail-section">
           <span className="detail-section-label">Genre</span>
           <div className="detail-genres" role="list">
-            {film.genres.map(g => (
+            {activeFilm.genres.map(g => (
               <span key={g} className="detail-genre-tag" role="listitem">{g}</span>
             ))}
           </div>
         </div>
       )}
 
-      {film.overview && (
+      {activeFilm.overview && (
         <div className="detail-section">
           <span className="detail-section-label">About</span>
-          <p className="detail-overview">{film.overview}</p>
+          <p className="detail-overview">{activeFilm.overview}</p>
         </div>
       )}
 
-      {film.reasons && film.reasons.length > 0 && (
+      {activeFilm.reasons && activeFilm.reasons.length > 0 && (
         <div className="detail-section">
           <span className="detail-section-label">Why it found you</span>
           <div className="detail-reasons" role="list" aria-label="Reasons this film was recommended">
-            {film.reasons.map((r, i) => (
+            {activeFilm.reasons.map((r, i) => (
               <div key={i} className="detail-reason" role="listitem">{r}</div>
             ))}
           </div>
@@ -299,7 +305,7 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
             href={trailerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Watch trailer for ${film.title} on YouTube`}
+            aria-label={`Watch trailer for ${activeFilm.title} on YouTube`}
           >
             ▶ WATCH TRAILER
           </a>
@@ -320,7 +326,7 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
       className="detail-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={`Film details: ${film.title}`}
+      aria-label={`Film details: ${activeFilm.title}`}
       aria-describedby={`${dialogId}-info`}
     >
       {/* ── CLOSE button — always visible ── */}
@@ -340,14 +346,14 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
             <img
               className="detail-poster"
               src={posterSrc}
-              alt={`${film.title} poster`}
+              alt={`${activeFilm.title} poster`}
               width={340}
               height={510}
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="detail-missing-poster" aria-label={`${film.title} — poster unavailable`}>
-              <span className="detail-missing-title">{film.title}</span>
+            <div className="detail-missing-poster" aria-label={`${activeFilm.title} — poster unavailable`}>
+              <span className="detail-missing-title">{activeFilm.title}</span>
               <span className="detail-missing-label">Poster Unavailable</span>
             </div>
           )}
@@ -360,18 +366,18 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
         {/* Poster fills screen */}
         <div
           className="detail-mobile-poster-wrap"
-          aria-label={`${film.title} — swipe up for details`}
+          aria-label={`${activeFilm.title} — swipe up for details`}
         >
           {posterSrc && !imageError ? (
             <img
               className="detail-mobile-poster"
               src={posterSrc}
-              alt={`${film.title} poster`}
+              alt={`${activeFilm.title} poster`}
               onError={() => setImageError(true)}
             />
           ) : (
             <div className="detail-missing-poster detail-mobile-missing">
-              <span className="detail-missing-title">{film.title}</span>
+              <span className="detail-missing-title">{activeFilm.title}</span>
             </div>
           )}
         </div>
@@ -403,8 +409,8 @@ export function FilmDetail({ film, onClose }: FilmDetailProps) {
             <span className="detail-sheet-handle-bar" aria-hidden="true" />
             {!sheetOpen && (
               <span className="detail-sheet-peek-title" aria-hidden="true">
-                {film.title}
-                {film.year ? ` · ${film.year}` : ''}
+                {activeFilm.title}
+                {activeFilm.year ? ` · ${activeFilm.year}` : ''}
               </span>
             )}
           </button>
